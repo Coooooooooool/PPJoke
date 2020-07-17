@@ -24,8 +24,7 @@
         android:text="虽然什么也没有,要不下拉刷新试试"
         android:textColor="#999999"
         android:textSize="16sp"
-        android:visibility="visible"
-        tools:text="虽然什么也没有,要不下拉刷新看看" />
+        android:visibility="visible"/>
 
 
     <com.google.android.material.button.MaterialButton

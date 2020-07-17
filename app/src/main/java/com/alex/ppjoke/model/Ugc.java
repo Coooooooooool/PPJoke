@@ -16,14 +16,10 @@ public class Ugc extends BaseObservable implements Serializable {
      */
 
     public int likeCount;
-
-
     public int shareCount;
     public int commentCount;
     public boolean hasFavorite;
     public boolean hasdiss;
-
-
     public boolean hasLiked;
 
 

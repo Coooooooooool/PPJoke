@@ -13,9 +13,9 @@
             name="lifeCycleOwner"
             type="androidx.lifecycle.LifecycleOwner" />
 
-        <import type="com.alex.ppjoke.model.Feed"></import>
+        <import type="com.alex.ppjoke.model.Feed" />
 
-        <import type="com.alex.ppjoke.utils.StringConvert"></import>
+        <import type="com.alex.ppjoke.utils.StringConvert" />
 
 <!--        <import type="com.mooc.ppjoke.ui.InteractionPresenter" />-->
 
@@ -30,13 +30,13 @@
         android:paddingLeft="@dimen/dp_16"
         android:paddingRight="@dimen/dp_16">
 
+<!--        android:onClick="@{()->InteractionPresenter.toggleFeedLike(lifeCycleOwner,feed)}"-->
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/like"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:onClick="@{()->InteractionPresenter.toggleFeedLike(lifeCycleOwner,feed)}"
             android:text="@{feed.ugc.likeCount>0?StringConvert.convertFeedUgc(feed.ugc.likeCount):@string/like}"
             android:textColor="@{feed.ugc.hasLiked?@color/color_theme:@color/color_3d3}"
             android:textSize="@dimen/sp_14"
@@ -51,13 +51,13 @@
             tools:text="1000"
             tools:textColor="@color/color_3d3" />
 
+<!--        android:onClick="@{()->InteractionPresenter.toggleFeedDiss(lifeCycleOwner,feed)}"-->
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/diss"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:onClick="@{()->InteractionPresenter.toggleFeedDiss(lifeCycleOwner,feed)}"
             android:text="踩"
             android:textColor="@{feed.ugc.hasdiss?@color/color_theme:@color/color_3d3}"
             android:textSize="@dimen/sp_14"
@@ -92,13 +92,13 @@
             tools:text="1000"
             tools:textColor="@color/color_3d3" />
 
+<!--        android:onClick="@{()->InteractionPresenter.openShare(((Context)lifeCycleOwner),feed)}"-->
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/share"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:onClick="@{()->InteractionPresenter.openShare(((Context)lifeCycleOwner),feed)}"
             android:text="@{feed.ugc.shareCount>0?StringConvert.convertFeedUgc(feed.ugc.shareCount):@string/share}"
             android:textColor="@color/color_3d3"
             android:textSize="@dimen/sp_14"

@@ -67,13 +67,19 @@ public class ApiService {
     }
 
     public static void init(String url, Convert con){
-
         baseUrl= url;
         if(con== null){
             con = new JsonConvert();
         }
         convert = con;
+    }
 
+    public static <T> GetRequest<T> get(String url){
+        return new GetRequest<>(baseUrl+url);
+    }
+
+    public static <T> PostRequest<T> post(String url){
+        return new PostRequest<>(baseUrl+url);
     }
 
 }

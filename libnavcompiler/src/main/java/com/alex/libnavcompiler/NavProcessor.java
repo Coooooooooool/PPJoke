@@ -31,8 +31,8 @@ import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 
 @AutoService(Processor.class)
-@SupportedSourceVersion(SourceVersion.RELEASE_8)//支持的源码类型
-@SupportedAnnotationTypes({"com.alex.libnavannotation.ActivityDestination","com.alex.libnavannotation.FragmentDestination"})//需要处理的注解类型
+@SupportedSourceVersion(SourceVersion.RELEASE_8)
+@SupportedAnnotationTypes({"com.alex.libnavannotation.ActivityDestination","com.alex.libnavannotation.FragmentDestination"})
 public class NavProcessor extends AbstractProcessor {
 
 
@@ -43,8 +43,8 @@ public class NavProcessor extends AbstractProcessor {
     @Override
     public synchronized void init(ProcessingEnvironment processingEnvironment) {
         super.init(processingEnvironment);
-        messager = processingEnvironment.getMessager();//打印运行时的日志
-        filer = processingEnvironment.getFiler();//文件处理工具
+        messager = processingEnvironment.getMessager();
+        filer = processingEnvironment.getFiler();
     }
 
     @Override
@@ -64,7 +64,7 @@ public class NavProcessor extends AbstractProcessor {
                 FileObject fileObject = filer.createResource(StandardLocation.CLASS_OUTPUT, "", OUTPUT_FILE_NAME);
                 String path = fileObject.toUri().getPath();
                 messager.printMessage(Diagnostic.Kind.NOTE,"path:"+path);
-                String appPath = path.substring(0, path.indexOf("app") + 4);//通过截取切换到指定目录
+                String appPath = path.substring(0, path.indexOf("app") + 4);
                 String assetsPath = appPath+"src/main/assets/";
                 File file = new File(assetsPath);
                 if(!file.exists()){
@@ -133,7 +133,7 @@ public class NavProcessor extends AbstractProcessor {
                 isFragment = false;
             }
 
-            //如果已有别的页面使用这个Url，就不能再使用了
+
             if(destMap.containsKey(pageUrl)){
                 messager.printMessage(Diagnostic.Kind.ERROR,"不同的页面不允许使用相同的pageUrl:"+clazName);
             }else {
