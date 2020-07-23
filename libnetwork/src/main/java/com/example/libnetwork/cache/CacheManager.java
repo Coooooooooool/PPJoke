@@ -7,21 +7,6 @@ import java.io.ObjectOutputStream;
 
 public class CacheManager {
 
-    public static  <T> void save(String key ,T body){
-        Cache cache = new Cache();
-        cache.key = key;
-        cache.data = toByteArray(body);
-
-        CacheDatabase.getDatabase().getCache().save(cache);
-    }
-
-    public static Object getCache(String key){
-        Cache cache = CacheDatabase.getDatabase().getCache().getCache(key);
-        if(cache!=null && cache.data != null){
-            return toObject(cache.data);
-        }
-        return null;
-    }
 
     private static Object toObject(byte[] data) {
         ByteArrayInputStream bais = null;
@@ -68,5 +53,26 @@ public class CacheManager {
         }
         return new byte[0];
     }
+    public static <T> void delete(String key, T body) {
+        Cache cache = new Cache();
+        cache.key = key;
+        cache.data = toByteArray(body);
+        CacheDatabase.getDatabase().getCache().delete(cache);
+    }
 
+    public static <T> void save(String key, T body) {
+        Cache cache = new Cache();
+        cache.key = key;
+        cache.data = toByteArray(body);
+
+        CacheDatabase.getDatabase().getCache().save(cache);
+    }
+
+    public static Object getCache(String key) {
+        Cache cache = CacheDatabase.getDatabase().getCache().getCache(key);
+        if (cache != null && cache.data != null) {
+            return toObject(cache.data);
+        }
+        return null;
+    }
 }

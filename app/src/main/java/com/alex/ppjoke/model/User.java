@@ -71,4 +71,14 @@ public class User extends BaseObservable implements Serializable {
                 && hasFollow == newUser.hasFollow;
     }
 
+    @Bindable
+    public boolean isHasFollow() {
+        return hasFollow;
+    }
+
+    public void setHasFollow(boolean hasFollow) {
+        this.hasFollow = hasFollow;
+        notifyPropertyChanged(com.alex.ppjoke.BR._all);
+    }
+
 }

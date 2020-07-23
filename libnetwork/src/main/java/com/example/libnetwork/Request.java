@@ -1,5 +1,6 @@
 package com.example.libnetwork;
 
+import android.annotation.SuppressLint;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -13,6 +14,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -23,37 +26,37 @@ import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
 
-public abstract class Request<T,R extends Request> implements Cloneable{
+public abstract class Request<T, R extends Request> implements Cloneable {
+    protected String mUrl;
+    protected HashMap<String, String> headers = new HashMap<>();
+    protected HashMap<String, Object> params = new HashMap<>();
 
-    protected String url;
-    protected HashMap<String,String> headers = new HashMap<>();
-    protected HashMap<String,Object> params = new HashMap<>();
-
-    //仅仅访问本地缓存，即便本地没有缓存，也不会发起网络请求
+    //仅仅只访问本地缓存，即便本地缓存不存在，也不会发起网络请求
     public static final int CACHE_ONLY = 1;
-    //先访问缓存，同时发起网络请求，成功后缓存到本地
+    //先访问缓存，同时发起网络的请求，成功后缓存到本地
     public static final int CACHE_FIRST = 2;
-    //仅仅访问服务器，不做任何存储
+    //仅仅只访问服务器，不存任何存储
     public static final int NET_ONLY = 3;
     //先访问网络，成功后缓存到本地
     public static final int NET_CACHE = 4;
-
     private String cacheKey;
-    private Type type;
-    private Class claz;
-    private int cacheStrategy;
+    private Type mType;
+    //private Class mClaz;
+    private int mCacheStrategy = NET_ONLY;
 
-    @IntDef({CACHE_ONLY,CACHE_FIRST,NET_ONLY,NET_CACHE})
-    public @interface CacheStrategy{
+    @IntDef({CACHE_ONLY, CACHE_FIRST, NET_CACHE, NET_ONLY})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface CacheStrategy {
 
     }
 
-    public Request(String url){
-        this.url = url;
+    public Request(String url) {
+        //user/list
+        mUrl = url;
     }
 
-    public R addHeader(String key,String value){
-        headers.put(key,value);
+    public R addHeader(String key, String value) {
+        headers.put(key, value);
         return (R) this;
     }
 
@@ -80,27 +83,52 @@ public abstract class Request<T,R extends Request> implements Cloneable{
         return (R) this;
     }
 
-    public R cacheStrategy(@CacheStrategy int cacheStrategy){
-        this.cacheStrategy = cacheStrategy;
+    public R cacheStrategy(@CacheStrategy int cacheStrategy) {
+        mCacheStrategy = cacheStrategy;
         return (R) this;
     }
 
-
-    public R cacheKey(String key){
+    public R cacheKey(String key) {
         this.cacheKey = key;
         return (R) this;
     }
 
+    public R responseType(Type type) {
+        mType = type;
+        return (R) this;
+    }
+
+    public R responseType(Class claz) {
+        mType = claz;
+        return (R) this;
+    }
+
+    private Call getCall() {
+        okhttp3.Request.Builder builder = new okhttp3.Request.Builder();
+        addHeaders(builder);
+        okhttp3.Request request = generateRequest(builder);
+        Call call = ApiService.okHttpClient.newCall(request);
+        return call;
+    }
+
+    protected abstract okhttp3.Request generateRequest(okhttp3.Request.Builder builder);
+
+    private void addHeaders(okhttp3.Request.Builder builder) {
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            builder.addHeader(entry.getKey(), entry.getValue());
+        }
+    }
+
     public ApiResponse<T> execute() {
-        if (type == null) {
+        if (mType == null) {
             throw new RuntimeException("同步方法,response 返回值 类型必须设置");
         }
 
-        if (cacheStrategy == CACHE_ONLY) {
+        if (mCacheStrategy == CACHE_ONLY) {
             return readCache();
         }
 
-        if (cacheStrategy != CACHE_ONLY) {
+        if (mCacheStrategy != CACHE_ONLY) {
             ApiResponse<T> result = null;
             try {
                 Response response = getCall().execute();
@@ -117,122 +145,101 @@ public abstract class Request<T,R extends Request> implements Cloneable{
         return null;
     }
 
-    public void excute(final JsonCallback<T> callback){
-        if(cacheStrategy != NET_ONLY){
+    @SuppressLint("RestrictedApi")
+    public void execute(final JsonCallback callback) {
+        if (mCacheStrategy != NET_ONLY) {
             ArchTaskExecutor.getIOThreadExecutor().execute(new Runnable() {
                 @Override
                 public void run() {
-                    ApiResponse<T> apiResponse = readCache();
-                    if(callback != null){
-                        callback.onCacheSuccess(apiResponse);
+                    ApiResponse<T> response = readCache();
+                    if (callback != null && response.body != null) {
+                        callback.onCacheSuccess(response);
                     }
                 }
             });
         }
-        if(cacheStrategy != CACHE_ONLY){
+        if (mCacheStrategy != CACHE_ONLY) {
             getCall().enqueue(new Callback() {
                 @Override
                 public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                    ApiResponse<T> response = new ApiResponse<>();
-                    response.message = e.getMessage();
-                    callback.onError(response);
+                    ApiResponse<T> result = new ApiResponse<>();
+                    result.message = e.getMessage();
+                    callback.onError(result);
                 }
 
                 @Override
                 public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                    ApiResponse<T> apiResponse  = parseResponse(response,callback);
-                    if(apiResponse.success)
-                        callback.onError(apiResponse);
-                    else
-                        callback.onSuccess(apiResponse);
+                    ApiResponse<T> result = parseResponse(response, callback);
+                    if (!result.success) {
+                        callback.onError(result);
+                    } else {
+                        callback.onSuccess(result);
+                    }
                 }
             });
         }
     }
 
     private ApiResponse<T> readCache() {
-        String key = TextUtils.isEmpty(cacheKey)?generateCacheKey():cacheKey;
+        String key = TextUtils.isEmpty(cacheKey) ? generateCacheKey() : cacheKey;
         Object cache = CacheManager.getCache(key);
-        ApiResponse<T> apiResponse = new ApiResponse<>();
-        apiResponse.status = 304;
-        apiResponse.message = "缓存获取成功";
-        apiResponse.body = (T) cache;
-        apiResponse.success = true;
-        return apiResponse;
+        ApiResponse<T> result = new ApiResponse<>();
+        result.status = 304;
+        result.message = "缓存获取成功";
+        result.body = (T) cache;
+        result.success = true;
+        return result;
     }
 
-    private  ApiResponse<T> parseResponse(Response response, JsonCallback<T> callback) {
+    private ApiResponse<T> parseResponse(Response response, JsonCallback<T> callback) {
         String message = null;
         int status = response.code();
         boolean success = response.isSuccessful();
-        ApiResponse<T> apiResponse = new ApiResponse<>();
+        ApiResponse<T> result = new ApiResponse<>();
         Convert convert = ApiService.convert;
-            try {
-                String content = response.body().string();
-                if(success){
-                    if(callback!= null){
-                        ParameterizedType type = (ParameterizedType) callback.getClass().getGenericSuperclass();
-                        Type argument = type.getActualTypeArguments()[0];
-                        apiResponse.body = (T) convert.convert(content, argument);
-                    }else if(type !=null){
-                        apiResponse.body = (T) convert.convert(content, type);
-                    }else if(claz!= null){
-                        apiResponse.body = (T) convert.convert(content, claz);
-                    }else{
-                        Log.e("request","response:无法解析");
-                    }
-                }else{
-                    message = content;
+        try {
+            String content = response.body().string();
+            if (success) {
+                if (callback != null) {
+                    ParameterizedType type = (ParameterizedType) callback.getClass().getGenericSuperclass();
+                    Type argument = type.getActualTypeArguments()[0];
+                    result.body = (T) convert.convert(content, argument);
+                } else if (mType != null) {
+                    result.body = (T) convert.convert(content, mType);
                 }
-            } catch (IOException e) {
-                message = e.getMessage();
-                e.printStackTrace();
-                success = false;
+//                } else if (mClaz != null) {
+//                    result.body = (T) convert.convert(content, mClaz);
+//                }
+                else {
+                    Log.e("request", "parseResponse: 无法解析 ");
+                }
+            } else {
+                message = content;
             }
-            apiResponse.success = success;
-            apiResponse.status = status;
-            apiResponse.message = message;
+        } catch (Exception e) {
+            message = e.getMessage();
+            success = false;
+            status = 0;
+        }
 
-            if(cacheStrategy != NET_ONLY && apiResponse.success && apiResponse.body != null && apiResponse.body instanceof Serializable){
-                saveCache(apiResponse.body);
-            }
+        result.success = success;
+        result.status = status;
+        result.message = message;
 
-            return apiResponse;
+        if (mCacheStrategy != NET_ONLY && result.success && result.body != null && result.body instanceof Serializable) {
+            saveCache(result.body);
+        }
+        return result;
     }
 
     private void saveCache(T body) {
-        String key = TextUtils.isEmpty(cacheKey)?generateCacheKey():cacheKey;
-        CacheManager.save(key,body);
+        String key = TextUtils.isEmpty(cacheKey) ? generateCacheKey() : cacheKey;
+        CacheManager.save(key, body);
     }
 
     private String generateCacheKey() {
-        cacheKey = UrlCreator.createUrlFromParams(url,params);
+        cacheKey = UrlCreator.createUrlFromParams(mUrl, params);
         return cacheKey;
-    }
-
-    public R responseType(Type type){
-        this.type = type;
-        return (R) this;
-    }
-
-    public R responseType(Class claz){
-        this.claz = claz;
-        return (R) this;
-    }
-
-    private Call getCall() {
-        okhttp3.Request.Builder builder = new okhttp3.Request.Builder();
-        addHeaders(builder);
-        okhttp3.Request request =  generateRequest(builder);
-        return ApiService.okHttpClient.newCall(request);
-    }
-
-    protected abstract okhttp3.Request generateRequest(okhttp3.Request.Builder builder);
-
-    private void addHeaders(okhttp3.Request.Builder builder) {
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            builder.addHeader(entry.getKey(),entry.getValue());
-        }
     }
 
     @NonNull
@@ -240,5 +247,4 @@ public abstract class Request<T,R extends Request> implements Cloneable{
     public Request clone() throws CloneNotSupportedException {
         return (Request<T, R>) super.clone();
     }
-
 }

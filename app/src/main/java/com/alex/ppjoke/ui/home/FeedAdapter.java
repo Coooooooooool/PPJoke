@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.alex.ppjoke.databinding.LayoutFeedTypeImageBinding;
 import com.alex.ppjoke.databinding.LayoutFeedTypeVideoBinding;
 import com.alex.ppjoke.model.Feed;
+import com.example.libcommon.utils.LogUtils;
 
 public class FeedAdapter extends PagedListAdapter<Feed,FeedAdapter.ViewHolder> {
 
@@ -79,6 +80,7 @@ public class FeedAdapter extends PagedListAdapter<Feed,FeedAdapter.ViewHolder> {
                 LayoutFeedTypeVideoBinding videoBinding = (LayoutFeedTypeVideoBinding) mBinding;
                 videoBinding.setFeed(item);
                 videoBinding.listPlayerView.bindData(category,item.width,item.height,item.cover,item.url);
+
             }
         }
     }

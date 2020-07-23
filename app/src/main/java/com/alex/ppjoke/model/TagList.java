@@ -60,8 +60,8 @@ public class TagList extends BaseObservable implements Serializable {
         return hasFollow;
     }
 
-//    public void setHasFollow(boolean follow) {
-//        this.hasFollow = follow;
-//        notifyPropertyChanged(com.mooc.ppjoke.BR._all);
-//    }
+    public void setHasFollow(boolean follow) {
+        this.hasFollow = follow;
+        notifyPropertyChanged(com.alex.ppjoke.BR._all);
+    }
 }

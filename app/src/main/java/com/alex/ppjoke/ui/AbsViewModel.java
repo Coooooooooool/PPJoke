@@ -8,17 +8,16 @@ import androidx.paging.DataSource;
 import androidx.paging.LivePagedListBuilder;
 import androidx.paging.PagedList;
 
-import com.alex.ppjoke.ui.AbsListFragment;
-
 public abstract class AbsViewModel<T> extends ViewModel {
 
+    protected String TAG = this.getClass().getSimpleName();
     private DataSource dataSource;
     private LiveData<PagedList<T>> pageData;
-
-    private MutableLiveData<Boolean> boundarbPageData = new MutableLiveData<>();
+    protected PagedList.Config config;
+    private MutableLiveData<Boolean> boundaryPageData = new MutableLiveData<>();
 
     public AbsViewModel(){
-        PagedList.Config config = new PagedList.Config.Builder()
+        config = new PagedList.Config.Builder()
                 .setPageSize(10)
                 .setInitialLoadSizeHint(12)
 //                .setMaxSize(100)
@@ -26,31 +25,6 @@ public abstract class AbsViewModel<T> extends ViewModel {
 //                .setPrefetchDistance()
                 .build();
 
-        DataSource.Factory factory = new DataSource.Factory() {
-            @NonNull
-            @Override
-            public DataSource create() {
-                dataSource = createDataSource();
-                return dataSource;
-            }
-        };
-
-        PagedList.BoundaryCallback<T> callback = new PagedList.BoundaryCallback<T>() {
-            @Override
-            public void onZeroItemsLoaded() {
-                boundarbPageData.postValue(false);
-            }
-
-            @Override
-            public void onItemAtFrontLoaded(@NonNull T itemAtFront) {
-                boundarbPageData.postValue(true);
-            }
-
-            @Override
-            public void onItemAtEndLoaded(@NonNull T itemAtEnd) {
-                super.onItemAtEndLoaded(itemAtEnd);
-            }
-        };
 
         pageData = new LivePagedListBuilder(factory, config)
                 .setInitialLoadKey(0)
@@ -59,6 +33,34 @@ public abstract class AbsViewModel<T> extends ViewModel {
                 .build();
 
     }
+
+    DataSource.Factory factory = new DataSource.Factory() {
+        @NonNull
+        @Override
+        public DataSource create() {
+            if(dataSource == null || dataSource.isInvalid())
+                dataSource = createDataSource();
+            return dataSource;
+        }
+    };
+
+
+    PagedList.BoundaryCallback<T> callback = new PagedList.BoundaryCallback<T>() {
+        @Override
+        public void onZeroItemsLoaded() {
+            boundaryPageData.postValue(false);
+        }
+
+        @Override
+        public void onItemAtFrontLoaded(@NonNull T itemAtFront) {
+            boundaryPageData.postValue(true);
+        }
+
+        @Override
+        public void onItemAtEndLoaded(@NonNull T itemAtEnd) {
+//            super.onItemAtEndLoaded(itemAtEnd);
+        }
+    };
 
     public abstract DataSource createDataSource();
 
@@ -70,7 +72,7 @@ public abstract class AbsViewModel<T> extends ViewModel {
         return dataSource;
     }
 
-    public MutableLiveData<Boolean> getBoundarbPageData() {
-        return boundarbPageData;
+    public MutableLiveData<Boolean> getBoundaryPageData() {
+        return boundaryPageData;
     }
 }
